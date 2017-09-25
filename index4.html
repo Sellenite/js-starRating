@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>星级评分4-抽象父类继承设计模式</title>
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <style type="text/css">
+    .wrapper {
+        text-align: center;
+    }
+
+    .rating {
+        font-size: 0;
+        display: inline-block;
+        margin-top: 30px;
+    }
+
+    .rating .rating-item {
+        display: inline-block;
+        width: 26px;
+        height: 26px;
+        background: url('images/hoshi-inactive.png') no-repeat center center;
+        background-size: contain;
+        cursor: pointer;
+    }
+
+    .rating .rating-item.active {
+        background: url('images/hoshi-active.png') no-repeat center center;
+        background-size: contain;
+    }
+
+    .rating .rating-item.halfactive {
+        background: url('images/hoshi-halfactive.png') no-repeat center center;
+        background-size: contain;
+    }
+    </style>
+    <script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <ul class="rating" id="rating">
+            <li class="rating-item" title="很不好"></li>
+            <li class="rating-item" title="不好"></li>
+            <li class="rating-item" title="一般"></li>
+            <li class="rating-item" title="好"></li>
+            <li class="rating-item" title="很好"></li>
+        </ul>
+        <ul class="rating" id="rating2">
+            <li class="rating-item" title="很不好"></li>
+            <li class="rating-item" title="不好"></li>
+            <li class="rating-item" title="一般"></li>
+            <li class="rating-item" title="好"></li>
+            <li class="rating-item" title="很好"></li>
+        </ul>
+    </div>
+    <script type="text/javascript" src="js/main.js"></script>
+    <script type="text/javascript">
+    $(function () {
+        var rating = (function () {
+            // default是关键字，无法作为变量名
+            var defaults = {
+                num: 0,
+                readOnly: false,
+                mode: 'one',
+                mouseover: function (num, length) {
+                    console.log('current object: ', this)
+                    console.log(num, length)
+                },
+                mouseclick: function (num, length) {
+                    console.log('current object: ', this)
+                    console.log(num, length)
+                }
+            }
+
+            /**
+             * 组合继承
+             * @param  {Function} subClass   子类
+             * @param  {Function} superClass 父类
+             * @return {[type]}            [description]
+             * 由于直接将父类的实例化赋值给子类的原型链，是一定会执行父类的构造函数的
+             * 如果父类的构造函数很庞大，是很影响性能的，而且这样其实也重复工作，
+             * 因为子类的call已经实现了父类构造函数的继承，这里属于重复工作
+             * 所以需要以下组合继承方案
+             */
+            var extend = function (subClass, superClass) {
+                var Super = function () {}
+                Super.prototype = superClass.prototype
+                // 这时候Super实例化就没有superClass的构造函数的内容了
+                subClass.prototype = new Super()
+                subClass.prototype.constructor = subClass
+            }
+
+            /**
+             * 父类
+             * @param {string} wrapper 父容器
+             * @param {string} el      子容器
+             * @param {object} options 配置
+             * 这里的子类统一使用组合继承，这样的继承能继承父类的属性和方法和父类原型属性的属性和方法，
+             * 这样在子类使用this.xxx也能够访问到父类的属性和方法，
+             * 不用在子类通过Light.prototype.lightON.call(this, num)这样来调用方法
+             */
+            var Light = function (wrapper, el, options) {
+                // 构造函数全局定义变量
+                this.$wrapper = $(wrapper)
+                this.$el = this.$wrapper.find(el)
+                this.el = el
+                this.options = options
+            }
+
+            Light.prototype.lightON = function (num) {
+                // 清空初始化
+                this.$el.each(function (index, item) {
+                    $(item).removeClass('active halfactive')
+                })
+                // 主计算逻辑
+                var num = Math.floor(num * 2) / 2
+                var hasDecimal = num % 1 !== 0
+                var integer = Math.floor(num)
+
+                for (var i = 0; i < integer; i++) {
+                    this.$el.eq(i).addClass('active')
+                }
+
+                if (hasDecimal && this.options.mode === 'half') {
+                    this.$el.eq(integer).addClass('halfactive')
+                }
+            }
+
+            Light.prototype.bindEvent = function () {
+                // 保存实例对象的this，this会由于事件绑定的原因而改变
+                var that = this
+                // 根据实例的子例判断加载哪个mouseevent
+                this.$wrapper.on(that.mouseevent, this.el, function (e) {
+                    var num
+                    if (that.options.mode === 'one') {
+                        num = $(this).index() + 1
+                    } else {
+                        num = that.calNum.call(this, e)
+                    }
+
+                    that.lightON(num)
+                    // 绑定一下this，自定义函数中可能有用
+                    that.options.mouseover && that.options.mouseover.apply(this, [num, that.$el.length])
+                })
+
+                // 点击修改全局变量
+                this.$wrapper.on('click', this.el, function (e) {
+                    var num
+                    if (that.options.mode === 'one') {
+                        num = $(this).index() + 1
+                    } else {
+                        num = that.calNum.call(this, e)
+                    }
+                    that.options.num = num
+                    // 绑定一下this，自定义函数中可能有用
+                    that.options.mouseclick && that.options.mouseclick.apply(this, [that.options.num, that.$el.length])
+                })
+
+                // 离开的时候激活
+                this.$wrapper.on('mouseleave', function () {
+                    that.lightON(that.options.num)
+                })
+            }
+
+            Light.prototype.calNum = function (e) {
+                // 用于计算鼠标在星星上的间距从而计算num值（用于点亮半颗）
+                // var num = (e.pageX - $this.offset().left) / $this.width() + $this.index()
+                // 以上代码无法使用，由于点亮函数是判断低于N(1+0.5)的情况下就显示N，需人为控制num
+                var num
+                var $this = $(this)
+                if (e.pageX - $this.offset().left < $this.width() / 2) {
+                    num = $this.index() + 0.5
+                } else {
+                    num = $this.index() + 1
+                }
+                return num
+            }
+
+            Light.prototype.init = function () {
+                this.lightON(this.options.num)
+                if (!this.options.readOnly) {
+                    this.bindEvent()
+                }
+            }
+
+            // 点亮整颗
+            var LightOne = function (wrapper, el, options) {
+                // 构造函数继承
+                Light.call(this, wrapper, el, options)
+                this.mouseevent = 'mouseenter'
+            }
+
+            // 原型链继承
+            extend(LightOne, Light)
+
+            // 点亮半颗
+            var LightHalf = function (wrapper, el, options) {
+                // 构造函数继承
+                Light.call(this, wrapper, el, options)
+                this.mouseevent = 'mousemove'
+            }
+
+            // 原型链继承
+            extend(LightHalf, Light)
+
+            // 模式映射，其实用if也可以
+            // new LightOne(wrapper, el, options).init()
+            var Mode = {
+                'one': LightOne,
+                'half': LightHalf
+            }
+
+            // 配置需要定义默认值，初始化入口
+            var init = function (wrapper, el, options) {
+                options = $.extend({}, defaults, options)
+                // 容错判断
+                Mode[options.mode] ? '' : options.mode = 'one'
+                new Mode[options.mode](wrapper, el, options).init()
+            }
+
+            return {
+                init: init
+            }
+        })()
+
+        // jquery插件
+        $.fn.extend({
+            rating: function (el, options) {
+                return this.each(function () {
+                    rating.init(this, el, options)
+                })
+            }
+        })
+
+        $('#rating').rating('.rating-item', {
+            num: 3.6,
+            readOnly: false,
+            mode: 'half',
+            mouseover: function (num, length) {
+
+            },
+            mouseclick: function (num, length) {
+
+            }
+        })
+
+        rating.init('#rating2', '.rating-item', {
+            num: 2.6,
+            readOnly: true,
+            mode: 'one',
+            mouseover: function (num, length) {
+
+            },
+            mouseclick: function (num, length) {
+
+            }
+        })
+    })
+    </script>
+</body>
+
+</html>

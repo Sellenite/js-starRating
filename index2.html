@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>星级评分2-简单函数调用</title>
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <style type="text/css">
+    .wrapper {
+        text-align: center;
+    }
+
+    .rating {
+        font-size: 0;
+        display: inline-block;
+        margin-top: 30px;
+    }
+
+    .rating .rating-item {
+        display: inline-block;
+        width: 26px;
+        height: 26px;
+        background: url('images/hoshi-inactive.png') no-repeat center center;
+        background-size: contain;
+        cursor: pointer;
+    }
+
+    .rating .rating-item.active {
+        background: url('images/hoshi-active.png') no-repeat center center;
+        background-size: contain;
+    }
+
+    .rating .rating-item.halfactive {
+        background: url('images/hoshi-halfactive.png') no-repeat center center;
+        background-size: contain;
+    }
+    </style>
+    <script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <ul class="rating" id="rating">
+            <li class="rating-item" title="很不好"></li>
+            <li class="rating-item" title="不好"></li>
+            <li class="rating-item" title="一般"></li>
+            <li class="rating-item" title="好"></li>
+            <li class="rating-item" title="很好"></li>
+        </ul>
+        <ul class="rating" id="rating2">
+            <li class="rating-item" title="很不好"></li>
+            <li class="rating-item" title="不好"></li>
+            <li class="rating-item" title="一般"></li>
+            <li class="rating-item" title="好"></li>
+            <li class="rating-item" title="很好"></li>
+        </ul>
+    </div>
+    <script type="text/javascript" src="js/main.js"></script>
+    <script type="text/javascript">
+    $(function () {
+        var rating = (function () {
+            // 避免多次调用init方法的时候多次声明该函数
+            var lightON = function (wrapper, el, num) {
+                wrapper.find(el).each(function (index, item) {
+                    if (index < num) {
+                        $(item).addClass('active')
+                    } else {
+                        $(item).removeClass('active')
+                    }
+                })
+            }
+
+            // 配置需要定义默认值，初始化入口
+            var init = function (wrapper, el, num) {
+                var $wrapper = $(wrapper)
+                // 初始化
+                lightON($wrapper, el, num)
+
+                // hover的时候不改变全局变量
+                $wrapper.on('mouseenter', el, function () {
+                    var _num = $(this).index() + 1
+                    lightON($wrapper, el, _num)
+                })
+
+                // 点击修改全局变量
+                $wrapper.on('click', el, function () {
+                    num = $(this).index() + 1
+                })
+
+                // 离开的时候激活
+                $wrapper.on('mouseleave', function () {
+                    lightON($wrapper, el, num)
+                })
+            }
+
+            return {
+                init: init
+            }
+        })()
+
+        // 普通调用
+        // rating.init('#rating', '.rating-item', 4)
+
+        // 封装jquery插件，链式调用模式
+        $.fn.extend({
+            rating: function (el, num) {
+                return this.each(function () {
+                    rating.init(this, el, num)
+                })
+            }
+        })
+
+        // jquery调用
+        // $('#rating2').rating('.rating-item', 2)
+
+        // jquery集体调用(链式调用的时候遍历了this)
+        $('.rating').rating('.rating-item', 4)
+    })
+    </script>
+</body>
+
+</html>

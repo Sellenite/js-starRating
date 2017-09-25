@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>星级评分1-简单面向过程</title>
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+    <style type="text/css">
+    .wrapper {
+        text-align: center;
+    }
+
+    .rating {
+        font-size: 0;
+        display: inline-block;
+        margin-top: 30px;
+    }
+
+    .rating .rating-item {
+        display: inline-block;
+        width: 26px;
+        height: 26px;
+        background: url('images/hoshi-inactive.png') no-repeat center center;
+        background-size: contain;
+        cursor: pointer;
+    }
+
+    .rating .rating-item.active {
+        background: url('images/hoshi-active.png') no-repeat center center;
+        background-size: contain;
+    }
+
+    .rating .rating-item.halfactive {
+        background: url('images/hoshi-halfactive.png') no-repeat center center;
+        background-size: contain;
+    }
+    </style>
+    <script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <ul class="rating" id="rating">
+            <li class="rating-item" title="很不好"></li>
+            <li class="rating-item" title="不好"></li>
+            <li class="rating-item" title="一般"></li>
+            <li class="rating-item" title="好"></li>
+            <li class="rating-item" title="很好"></li>
+        </ul>
+    </div>
+    <script type="text/javascript" src="js/main.js"></script>
+    <script type="text/javascript">
+    $(function () {
+    	// 全局和默认星数
+        var num = 3
+        var $rating = $('#rating')
+        var $item = $rating.find('.rating-item')
+
+        var lightON = function (num) {
+            $item.each(function (index, item) {
+                if (index < num) {
+                    $(item).addClass('active')
+                } else {
+                    $(item).removeClass('active')
+                }
+            })
+        }
+
+        // 初始化
+        lightON(num)
+
+        // hover的时候只是看，不改变全局变量
+        $item.on('mouseenter', function() {
+        	var _num = $(this).index() + 1
+        	lightON(_num)
+        })
+
+        // 点击修改全局变量
+        $item.on('click', function() {
+        	num = $(this).index() + 1
+        })
+
+        // 离开的时候激活
+        $rating.on('mouseleave', function() {
+        	lightON(num)
+        })
+    })
+    </script>
+</body>
+
+</html>
